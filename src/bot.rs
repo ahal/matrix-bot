@@ -1,29 +1,47 @@
 use std::{env, process::exit};
 use tokio::time::{delay_for, Duration};
-use uuid::Uuid;
+
+mod handler;
+use crate::handler::{HandleResult, MessageHandler};
+
+mod apps {
+    pub mod uuid;
+}
+use crate::apps::uuid::UuidHandler;
 
 use matrix_sdk::{
     self, async_trait,
     events::{
         room::{
             member::MemberEventContent,
-            message::{MessageEventContent, TextMessageEventContent},
+            message::MessageEventContent,
         },
-        AnyMessageEventContent, StrippedStateEvent, SyncMessageEvent,
+        StrippedStateEvent, SyncMessageEvent,
     },
     Client, ClientConfig, EventEmitter, JsonStore, SyncRoom, SyncSettings,
 };
 use url::Url;
 
-struct BotZilla {
+pub struct BotZilla {
     /// This clone of the `Client` will send requests to the server,
     /// while the other keeps us in sync with the server using `sync`.
     client: Client,
+    handlers: Vec<Box<dyn MessageHandler + Send + Sync>>,
 }
 
 impl BotZilla {
     pub fn new(client: Client) -> Self {
-        Self { client }
+        Self {
+            client,
+            handlers: vec![],
+        }
+    }
+
+    pub fn add_handler<M>(&mut self, handler: M)
+    where
+        M: handler::MessageHandler + 'static + Send + Sync,
+    {
+        self.handlers.push(Box::new(handler));
     }
 }
 
@@ -66,38 +84,15 @@ impl EventEmitter for BotZilla {
     }
 
     async fn on_room_message(&self, room: SyncRoom, event: &SyncMessageEvent<MessageEventContent>) {
-        if let SyncRoom::Joined(room) = room {
-            let msg_body = if let SyncMessageEvent {
-                content: MessageEventContent::Text(TextMessageEventContent { body: msg_body, .. }),
-                ..
-            } = event
-            {
-                msg_body.clone()
-            } else {
-                String::new()
-            };
-
-            if msg_body == "!uuid" {
-                let new_uuid = Uuid::new_v4();
-                let content = AnyMessageEventContent::RoomMessage(MessageEventContent::text_plain(
-                    new_uuid.to_hyphenated().to_string(),
-                ));
-                // we clone here to hold the lock for as little time as possible.
-                let room_id = room.read().await.room_id.clone();
-
-                println!("sending");
-
-                self.client
-                    // send our message to the room we found the "!party" command in
-                    // the last parameter is an optional Uuid which we don't care about.
-                    .room_send(&room_id, content, None)
-                    .await
-                    .unwrap();
-
-                println!("message sent");
+        for handler in self.handlers.iter() {
+            let val = handler.handle_message(&self, &room, event).await;
+            match val {
+                HandleResult::Continue => continue,
+                HandleResult::Stop => break,
             }
         }
     }
+
 }
 
 async fn login_and_sync(
@@ -128,8 +123,11 @@ async fn login_and_sync(
     client.sync_once(SyncSettings::default()).await.unwrap();
     // add BotZilla to be notified of incoming messages, we do this after the initial
     // sync to avoid responding to messages before the bot was running.
+    let mut bot = BotZilla::new(client.clone());
+    bot.add_handler(UuidHandler {});
+
     client
-        .add_event_emitter(Box::new(BotZilla::new(client.clone())))
+        .add_event_emitter(Box::new(bot))
         .await;
 
     // since we called `sync_once` before we entered our sync loop we must pass
