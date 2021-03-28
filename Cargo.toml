@@ -7,8 +7,12 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-matrix_bot_api = "0.5.2"
+dirs = "^3.0.1"
+matrix-sdk = "0.2.0"
+tokio = {"version"= "^0.2.0", features=["rt-threaded", "macros"]}
+tracing-subscriber = "^0.2.17"
+url = "^2.2.1"
 
 [[bin]]
 name = "botzilla"
-path = "src/bin.rs"
+path = "src/bot.rs"
