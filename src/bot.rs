@@ -1,11 +1,12 @@
 use std::{env, process::exit};
 use tokio::time::{delay_for, Duration};
+use uuid::Uuid;
 
 use matrix_sdk::{
     self, async_trait,
     events::{
         room::{
-            member::{MemberEventContent},
+            member::MemberEventContent,
             message::{MessageEventContent, TextMessageEventContent},
         },
         AnyMessageEventContent, StrippedStateEvent, SyncMessageEvent,
@@ -76,9 +77,10 @@ impl EventEmitter for BotZilla {
                 String::new()
             };
 
-            if msg_body.contains("!party") {
+            if msg_body == "!uuid" {
+                let new_uuid = Uuid::new_v4();
                 let content = AnyMessageEventContent::RoomMessage(MessageEventContent::text_plain(
-                    "🎉🎊🥳 let's PARTY!! 🥳🎊🎉",
+                    new_uuid.to_hyphenated().to_string(),
                 ));
                 // we clone here to hold the lock for as little time as possible.
                 let room_id = room.read().await.room_id.clone();
