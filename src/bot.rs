@@ -22,14 +22,14 @@ use matrix_sdk::{
 };
 use url::Url;
 
-pub struct BotZilla {
+pub struct MatrixBot {
     /// This clone of the `Client` will send requests to the server,
     /// while the other keeps us in sync with the server using `sync`.
     client: Client,
     handlers: Vec<Box<dyn MessageHandler + Send + Sync>>,
 }
 
-impl BotZilla {
+impl MatrixBot {
     pub fn new(client: Client) -> Self {
         Self {
             client,
@@ -46,7 +46,7 @@ impl BotZilla {
 }
 
 #[async_trait]
-impl EventEmitter for BotZilla {
+impl EventEmitter for MatrixBot {
     async fn on_stripped_state_member(
         &self,
         room: SyncRoom,
@@ -121,9 +121,9 @@ async fn login_and_sync(
     // If the `StateStore` finds saved state in the location given the initial sync will
     // be skipped in favor of loading state from the store
     client.sync_once(SyncSettings::default()).await.unwrap();
-    // add BotZilla to be notified of incoming messages, we do this after the initial
+    // add MatrixBot to be notified of incoming messages, we do this after the initial
     // sync to avoid responding to messages before the bot was running.
-    let mut bot = BotZilla::new(client.clone());
+    let mut bot = MatrixBot::new(client.clone());
     bot.add_handler(UuidHandler {});
 
     client
@@ -133,7 +133,7 @@ async fn login_and_sync(
     // since we called `sync_once` before we entered our sync loop we must pass
     // that sync token to `sync`
     let settings = SyncSettings::default().token(client.sync_token().await.unwrap());
-    // this keeps state from the server streaming in to BotZilla via the EventEmitter trait
+    // this keeps state from the server streaming in to MatrixBot via the EventEmitter trait
     client.sync(settings).await;
 
     Ok(())

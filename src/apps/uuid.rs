@@ -8,14 +8,14 @@ use matrix_sdk::{
 };
 use uuid::Uuid;
 
-use crate::BotZilla;
+use crate::MatrixBot;
 use crate::handler::{HandleResult, MessageHandler};
 
 pub struct UuidHandler {}
 
 #[async_trait]
 impl MessageHandler for UuidHandler {
-    async fn handle_message(&self, bot: &BotZilla, room: &SyncRoom, event: &SyncMessageEvent<MessageEventContent>) -> HandleResult {
+    async fn handle_message(&self, bot: &MatrixBot, room: &SyncRoom, event: &SyncMessageEvent<MessageEventContent>) -> HandleResult {
         if let SyncRoom::Joined(room) = room {
             let msg_body = if let SyncMessageEvent {
                 content: MessageEventContent::Text(TextMessageEventContent { body: msg_body, .. }),

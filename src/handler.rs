@@ -1,4 +1,4 @@
-use crate::BotZilla;
+use crate::MatrixBot;
 
 use matrix_sdk::{
     self, async_trait,
@@ -20,7 +20,7 @@ pub enum HandleResult {
 pub trait MessageHandler {
     async fn handle_message(
         &self,
-        bot: &BotZilla,
+        bot: &MatrixBot,
         room: &SyncRoom,
         event: &SyncMessageEvent<MessageEventContent>,
     ) -> HandleResult;

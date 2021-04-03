@@ -1,5 +1,5 @@
 [package]
-name = "botzilla"
+name = "matrix-bot"
 version = "0.1.0"
 authors = ["Andrew Halberstadt <ahal@pm.me>"]
 edition = "2018"
@@ -15,5 +15,5 @@ url = "^2.2.1"
 uuid = {"version" = "^0.8.2", features = ["v4"]}
 
 [[bin]]
-name = "botzilla"
+name = "testbot"
 path = "src/bot.rs"
