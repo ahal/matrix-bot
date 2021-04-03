@@ -95,11 +95,22 @@ impl EventEmitter for MatrixBot {
 
 }
 
-async fn login_and_sync(
-    homeserver_url: String,
-    username: String,
-    password: String,
-) -> Result<(), matrix_sdk::Error> {
+#[tokio::main]
+pub async fn run() -> Result<(), matrix_sdk::Error> {
+    tracing_subscriber::fmt::init();
+
+    let (homeserver_url, username, password) =
+        match (env::args().nth(1), env::args().nth(2), env::args().nth(3)) {
+            (Some(a), Some(b), Some(c)) => (a, b, c),
+            _ => {
+                eprintln!(
+                    "Usage: {} <homeserver_url> <username> <password>",
+                    env::args().next().unwrap()
+                );
+                exit(1)
+            }
+        };
+
     // the location for `JsonStore` to save files to
     let mut home = dirs::home_dir().expect("no home directory found");
     home.push("party_bot");
@@ -136,25 +147,5 @@ async fn login_and_sync(
     // this keeps state from the server streaming in to MatrixBot via the EventEmitter trait
     client.sync(settings).await;
 
-    Ok(())
-}
-
-#[tokio::main]
-async fn main() -> Result<(), matrix_sdk::Error> {
-    tracing_subscriber::fmt::init();
-
-    let (homeserver_url, username, password) =
-        match (env::args().nth(1), env::args().nth(2), env::args().nth(3)) {
-            (Some(a), Some(b), Some(c)) => (a, b, c),
-            _ => {
-                eprintln!(
-                    "Usage: {} <homeserver_url> <username> <password>",
-                    env::args().next().unwrap()
-                );
-                exit(1)
-            }
-        };
-
-    login_and_sync(homeserver_url, username, password).await?;
     Ok(())
 }
