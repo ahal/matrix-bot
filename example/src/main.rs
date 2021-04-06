@@ -1,5 +1,10 @@
-use matrix_bot::run;
+use matrix_bot::{
+    MatrixBot,
+    apps::uuid::UuidHandler,
+};
 
 fn main() {
-   run();
+    let mut bot = MatrixBot::new().unwrap();
+    bot.add_handler(UuidHandler {});
+    bot.run().unwrap();
 }
