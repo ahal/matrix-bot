@@ -4,7 +4,7 @@ use tokio::time::{delay_for, Duration};
 mod handler;
 use crate::handler::{HandleResult, MessageHandler};
 
-pub mod apps {
+pub mod plugins {
     pub mod uuid;
 }
 

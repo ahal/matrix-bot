@@ -1,6 +1,6 @@
 use matrix_bot::{
     MatrixBot,
-    apps::uuid::UuidHandler,
+    plugins::uuid::UuidHandler,
 };
 
 fn main() {
