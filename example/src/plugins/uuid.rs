@@ -1,3 +1,7 @@
+use matrix_bot::{
+    MatrixBot,
+    handler::{HandleResult, MessageHandler},
+};
 use matrix_sdk::{
     self, async_trait,
     events::{
@@ -7,9 +11,6 @@ use matrix_sdk::{
     SyncRoom,
 };
 use uuid::Uuid;
-
-use crate::MatrixBot;
-use crate::handler::{HandleResult, MessageHandler};
 
 pub struct UuidHandler {}
 

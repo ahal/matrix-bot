@@ -1,12 +1,8 @@
 use std::{env, process::exit};
 use tokio::time::{delay_for, Duration};
 
-mod handler;
+pub mod handler;
 use crate::handler::{HandleResult, MessageHandler};
-
-pub mod plugins {
-    pub mod uuid;
-}
 
 use matrix_sdk::{
     self, async_trait,
@@ -24,7 +20,7 @@ use url::Url;
 pub struct MatrixBot {
     /// This clone of the `Client` will send requests to the server,
     /// while the other keeps us in sync with the server using `sync`.
-    client: Client,
+    pub client: Client,
     handlers: Vec<Box<dyn MessageHandler + Send + Sync>>,
 }
 
@@ -63,7 +59,7 @@ impl MatrixBot {
         runtime.block_on(async {
             client
                 .login(&username, &password, None, Some("testbot"))
-                .await;
+                .await.unwrap();
         });
 
         println!("logged in as {}", username);
