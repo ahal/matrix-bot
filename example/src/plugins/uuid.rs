@@ -12,7 +12,15 @@ use matrix_sdk::{
 };
 use uuid::Uuid;
 
-pub struct UuidHandler {}
+pub struct UuidHandler {
+
+}
+
+impl UuidHandler {
+    fn generate_uuid(&self) -> std::string::String {
+        Uuid::new_v4().to_hyphenated().to_string()
+    }
+}
 
 #[async_trait]
 impl MessageHandler for UuidHandler {
@@ -29,9 +37,8 @@ impl MessageHandler for UuidHandler {
             };
 
             if msg_body == "!uuid" {
-                let new_uuid = Uuid::new_v4();
                 let content = AnyMessageEventContent::RoomMessage(MessageEventContent::text_plain(
-                    new_uuid.to_hyphenated().to_string(),
+                    self.generate_uuid()
                 ));
 
                 println!("sending");
@@ -50,5 +57,17 @@ impl MessageHandler for UuidHandler {
             }
         }
         HandleResult::Continue
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn uuid_is_generated() {
+        let handler = UuidHandler {};
+        let uuid = handler.generate_uuid();
+        assert_eq!(uuid.len(), 36);
     }
 }
