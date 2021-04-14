@@ -1,8 +1,10 @@
 [package]
 name = "matrix-bot"
+description = "A skeleton bot framework for the Matrix protocol."
 version = "0.1.0"
 authors = ["Andrew Halberstadt <ahal@pm.me>"]
 edition = "2018"
+license = "MPL-2.0"
 
 [lib]
 path = "src/bot.rs"
