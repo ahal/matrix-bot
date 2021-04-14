@@ -1,4 +1,3 @@
-use std::{env, process::exit};
 use tokio::time::{delay_for, Duration};
 
 pub mod handler;
@@ -7,10 +6,7 @@ use crate::handler::{HandleResult, MessageHandler};
 use matrix_sdk::{
     self, async_trait,
     events::{
-        room::{
-            member::MemberEventContent,
-            message::MessageEventContent,
-        },
+        room::{member::MemberEventContent, message::MessageEventContent},
         StrippedStateEvent, SyncMessageEvent,
     },
     Client, ClientConfig, EventEmitter, JsonStore, SyncRoom, SyncSettings,
@@ -25,25 +21,17 @@ pub struct MatrixBot {
 }
 
 impl MatrixBot {
-    pub fn new() -> Result<Self, matrix_sdk::Error> {
+    pub fn new(
+        homeserver: &str,
+        username: &str,
+        password: &str,
+    ) -> Result<Self, matrix_sdk::Error> {
         tracing_subscriber::fmt::init();
         let mut runtime = tokio::runtime::Builder::new()
             .threaded_scheduler()
             .enable_all()
             .build()
             .unwrap();
-
-        let (homeserver_url, username, password) =
-            match (env::args().nth(1), env::args().nth(2), env::args().nth(3)) {
-                (Some(a), Some(b), Some(c)) => (a, b, c),
-                _ => {
-                    eprintln!(
-                        "Usage: {} <homeserver_url> <username> <password>",
-                        env::args().next().unwrap()
-                    );
-                    exit(1)
-                }
-            };
 
         // the location for `JsonStore` to save files to
         let mut home = dirs::home_dir().expect("no home directory found");
@@ -52,18 +40,19 @@ impl MatrixBot {
         let store = JsonStore::open(&home)?;
         let client_config = ClientConfig::new().state_store(Box::new(store));
 
-        let homeserver_url = Url::parse(&homeserver_url).expect("Couldn't parse the homeserver URL");
+        let homeserver =
+            Url::parse(&homeserver).expect("Couldn't parse the homeserver URL");
         // create a new Client with the given homeserver url and config
-        let client = Client::new_with_config(homeserver_url, client_config).unwrap();
+        let client = Client::new_with_config(homeserver, client_config).unwrap();
 
         runtime.block_on(async {
             client
                 .login(&username, &password, None, Some("testbot"))
-                .await.unwrap();
+                .await
+                .unwrap();
         });
 
         println!("logged in as {}", username);
-
 
         Ok(Self {
             client,
@@ -84,9 +73,7 @@ impl MatrixBot {
             // If the `StateStore` finds saved state in the location given the initial sync will
             // be skipped in favor of loading state from the store
             client.sync_once(SyncSettings::default()).await.unwrap();
-            client
-                .add_event_emitter(Box::new(self))
-                .await;
+            client.add_event_emitter(Box::new(self)).await;
 
             // since we called `sync_once` before we entered our sync loop we must pass
             // that sync token to `sync`
@@ -152,5 +139,16 @@ impl EventEmitter for MatrixBot {
             }
         }
     }
+}
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use url::Url;
+
+    #[tokio::test]
+    async fn login() {
+        let homeserver = Url::parse(&mockito::server_url()).unwrap();
+        let client = Client::new(homeserver).unwrap();
+    }
 }
