@@ -1,3 +1,5 @@
+![Build Status](https://img.shields.io/github/workflow/status/ahal/matrix-bot/CI?style=flat-square)
+
 # MatrixBot
 
 A bot framework for Matrix written in Rust. MatrixBot provides only the framework for building a
