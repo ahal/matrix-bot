@@ -1,5 +1,6 @@
 ![Build Status](https://github.com/ahal/matrix-bot/actions/workflows/rust.yml/badge.svg)
-[![License](https://img.shields.io/badge/License-MPL-2.0-yellowgreen.svg?style=flat-square)](https://opensource.org/licenses/MPL-2.0)
+![Version](https://img.shields.io/crates/v/matrix-bot.svg)
+[![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-yellow.svg)](https://opensource.org/licenses/MPL-2.0)
 
 # MatrixBot
 
