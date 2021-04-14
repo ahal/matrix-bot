@@ -21,17 +21,12 @@ pub struct MatrixBot {
 }
 
 impl MatrixBot {
-    pub fn new(
+    pub async fn new(
         homeserver: &str,
         username: &str,
         password: &str,
     ) -> Result<Self, matrix_sdk::Error> {
         tracing_subscriber::fmt::init();
-        let mut runtime = tokio::runtime::Builder::new()
-            .threaded_scheduler()
-            .enable_all()
-            .build()
-            .unwrap();
 
         // the location for `JsonStore` to save files to
         let mut home = dirs::home_dir().expect("no home directory found");
@@ -40,17 +35,14 @@ impl MatrixBot {
         let store = JsonStore::open(&home)?;
         let client_config = ClientConfig::new().state_store(Box::new(store));
 
-        let homeserver =
-            Url::parse(&homeserver).expect("Couldn't parse the homeserver URL");
+        let homeserver = Url::parse(&homeserver).expect("Couldn't parse the homeserver URL");
         // create a new Client with the given homeserver url and config
         let client = Client::new_with_config(homeserver, client_config).unwrap();
 
-        runtime.block_on(async {
-            client
-                .login(&username, &password, None, Some("testbot"))
-                .await
-                .unwrap();
-        });
+        client
+            .login(&username, &password, None, Some("testbot"))
+            .await
+            .unwrap();
 
         println!("logged in as {}", username);
 
@@ -60,27 +52,20 @@ impl MatrixBot {
         })
     }
 
-    pub fn run(self) -> Result<(), matrix_sdk::Error> {
+    pub async fn run(self) -> Result<(), matrix_sdk::Error> {
         let mut client = self.client.clone();
-        let mut runtime = tokio::runtime::Builder::new()
-            .threaded_scheduler()
-            .enable_all()
-            .build()
-            .unwrap();
 
-        runtime.block_on(async {
-            // An initial sync to set up state and so our bot doesn't respond to old messages.
-            // If the `StateStore` finds saved state in the location given the initial sync will
-            // be skipped in favor of loading state from the store
-            client.sync_once(SyncSettings::default()).await.unwrap();
-            client.add_event_emitter(Box::new(self)).await;
+        // An initial sync to set up state and so our bot doesn't respond to old messages.
+        // If the `StateStore` finds saved state in the location given the initial sync will
+        // be skipped in favor of loading state from the store
+        client.sync_once(SyncSettings::default()).await.unwrap();
+        client.add_event_emitter(Box::new(self)).await;
 
-            // since we called `sync_once` before we entered our sync loop we must pass
-            // that sync token to `sync`
-            let settings = SyncSettings::default().token(client.sync_token().await.unwrap());
-            // this keeps state from the server streaming in to MatrixBot via the EventEmitter trait
-            client.sync(settings).await;
-        });
+        // since we called `sync_once` before we entered our sync loop we must pass
+        // that sync token to `sync`
+        let settings = SyncSettings::default().token(client.sync_token().await.unwrap());
+        // this keeps state from the server streaming in to MatrixBot via the EventEmitter trait
+        client.sync(settings).await;
         Ok(())
     }
 
@@ -107,7 +92,7 @@ impl EventEmitter for MatrixBot {
         if let SyncRoom::Invited(room) = room {
             let room = room.read().await;
             println!("Autojoining room {}", room.room_id);
-            let mut delay = 2;
+            let mut delay: u64 = 2;
 
             while let Err(err) = self.client.join_room_by_id(&room.room_id).await {
                 // retry autojoin due to synapse sending invites, before the
@@ -144,11 +129,21 @@ impl EventEmitter for MatrixBot {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use url::Url;
+    use matrix_sdk_test::test_json;
+    use mockito::mock;
 
     #[tokio::test]
     async fn login() {
-        let homeserver = Url::parse(&mockito::server_url()).unwrap();
-        let client = Client::new(homeserver).unwrap();
+        let homeserver = mockito::server_url();
+        let _m = mock("POST", "/_matrix/client/r0/login")
+            .with_status(200)
+            .with_body(test_json::LOGIN.to_string())
+            .create();
+
+        let bot = MatrixBot::new(&homeserver, "user", "password")
+            .await
+            .unwrap();
+        let logged_in = bot.client.logged_in().await;
+        assert!(logged_in, "Bot should be logged in");
     }
 }

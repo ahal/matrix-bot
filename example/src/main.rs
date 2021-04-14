@@ -6,7 +6,8 @@ pub mod plugins {
 }
 use crate::plugins::uuid::UuidHandler;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let (homeserver, username, password) =
         match (env::args().nth(1), env::args().nth(2), env::args().nth(3)) {
             (Some(a), Some(b), Some(c)) => (a, b, c),
@@ -19,7 +20,9 @@ fn main() {
             }
         };
 
-    let mut bot = MatrixBot::new(&homeserver, &username, &password).unwrap();
+    let mut bot = MatrixBot::new(&homeserver, &username, &password)
+        .await
+        .unwrap();
     bot.add_handler(UuidHandler {});
-    bot.run().unwrap();
+    bot.run().await.unwrap();
 }
