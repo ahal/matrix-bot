@@ -1,4 +1,4 @@
-use tokio::time::{delay_for, Duration};
+use std::{thread, time};
 
 pub mod handler;
 use crate::handler::{HandleResult, MessageHandler};
@@ -103,7 +103,7 @@ impl EventEmitter for MatrixBot {
                     room.room_id, err, delay
                 );
 
-                delay_for(Duration::from_secs(delay)).await;
+                thread::sleep(time::Duration::from_secs(delay));
                 delay *= 2;
 
                 if delay > 3600 {

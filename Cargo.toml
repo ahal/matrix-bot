@@ -12,10 +12,10 @@ path = "src/bot.rs"
 [dependencies]
 dirs = "^3.0.1"
 matrix-sdk = {"version" = "0.2.0", features = ["encryption", "sqlite_cryptostore"]}
-tokio = {"version" = "^0.2.0", features = ["rt-threaded", "macros", "time"]}
 tracing-subscriber = "^0.2.17"
 url = "^2.2.1"
 
 [dev-dependencies]
 matrix-sdk-test = "0.2.0"
 mockito = "^0.30.0"
+tokio = {"version" = "^0.2.0", features = ["rt-threaded", "macros", "time"]}
