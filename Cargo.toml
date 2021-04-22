@@ -11,11 +11,11 @@ path = "src/bot.rs"
 
 [dependencies]
 dirs = "^3.0.1"
-matrix-sdk = {"version" = "0.2.0", features = ["encryption", "sqlite_cryptostore"]}
+matrix-sdk = {"git" = "https://github.com/matrix-org/matrix-rust-sdk", "rev" = "ab180362c931606385dd53b73620d82ef2c3166d"}
 tracing-subscriber = "^0.2.17"
 url = "^2.2.1"
 
 [dev-dependencies]
-matrix-sdk-test = "0.2.0"
+matrix-sdk-test = {"git" = "https://github.com/matrix-org/matrix-rust-sdk", "rev" = "ab180362c931606385dd53b73620d82ef2c3166d"}
 mockito = "^0.30.0"
-tokio = {"version" = "^0.2.0", features = ["rt-threaded", "macros", "time"]}
+tokio = {"version" = "^1.5.0", features = ["rt-multi-thread", "macros", "time"]}

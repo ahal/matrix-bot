@@ -8,7 +8,7 @@ use matrix_sdk::{
         },
         SyncMessageEvent,
     },
-    SyncRoom,
+    room::Room,
 };
 
 pub enum HandleResult {
@@ -21,7 +21,7 @@ pub trait MessageHandler {
     async fn handle_message(
         &self,
         bot: &MatrixBot,
-        room: &SyncRoom,
+        room: &Room,
         event: &SyncMessageEvent<MessageEventContent>,
     ) -> HandleResult;
 }

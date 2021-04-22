@@ -9,7 +9,8 @@ use matrix_sdk::{
         room::{member::MemberEventContent, message::MessageEventContent},
         StrippedStateEvent, SyncMessageEvent,
     },
-    Client, ClientConfig, EventEmitter, JsonStore, SyncRoom, SyncSettings,
+    room::Room,
+    Client, ClientConfig, EventHandler, SyncSettings,
 };
 use url::Url;
 
@@ -32,15 +33,14 @@ impl MatrixBot {
         let mut home = dirs::home_dir().expect("no home directory found");
         home.push("testbot");
 
-        let store = JsonStore::open(&home)?;
-        let client_config = ClientConfig::new().state_store(Box::new(store));
+        let client_config = ClientConfig::new().store_path(home);
 
         let homeserver = Url::parse(&homeserver).expect("Couldn't parse the homeserver URL");
         // create a new Client with the given homeserver url and config
         let client = Client::new_with_config(homeserver, client_config).unwrap();
 
         client
-            .login(&username, &password, None, Some("testbot"))
+            .login(username, password, None, Some("testbot"))
             .await
             .unwrap();
 
@@ -53,18 +53,18 @@ impl MatrixBot {
     }
 
     pub async fn run(self) -> Result<(), matrix_sdk::Error> {
-        let mut client = self.client.clone();
+        let client = self.client.clone();
 
         // An initial sync to set up state and so our bot doesn't respond to old messages.
         // If the `StateStore` finds saved state in the location given the initial sync will
         // be skipped in favor of loading state from the store
         client.sync_once(SyncSettings::default()).await.unwrap();
-        client.add_event_emitter(Box::new(self)).await;
+        client.set_event_handler(Box::new(self)).await;
 
         // since we called `sync_once` before we entered our sync loop we must pass
         // that sync token to `sync`
         let settings = SyncSettings::default().token(client.sync_token().await.unwrap());
-        // this keeps state from the server streaming in to MatrixBot via the EventEmitter trait
+        // this keeps state from the server streaming in to MatrixBot via the EventHandler trait
         client.sync(settings).await;
         Ok(())
     }
@@ -78,10 +78,10 @@ impl MatrixBot {
 }
 
 #[async_trait]
-impl EventEmitter for MatrixBot {
+impl EventHandler for MatrixBot {
     async fn on_stripped_state_member(
         &self,
-        room: SyncRoom,
+        room: Room,
         room_member: &StrippedStateEvent<MemberEventContent>,
         _: Option<MemberEventContent>,
     ) {
@@ -89,33 +89,32 @@ impl EventEmitter for MatrixBot {
             return;
         }
 
-        if let SyncRoom::Invited(room) = room {
-            let room = room.read().await;
-            println!("Autojoining room {}", room.room_id);
+        if let Room::Invited(room) = room {
+            println!("Autojoining room {}", room.room_id());
             let mut delay: u64 = 2;
 
-            while let Err(err) = self.client.join_room_by_id(&room.room_id).await {
+            while let Err(err) = room.accept_invitation().await {
                 // retry autojoin due to synapse sending invites, before the
                 // invited user can join for more information see
                 // https://github.com/matrix-org/synapse/issues/4345
                 eprintln!(
                     "Failed to join room {} ({:?}), retrying in {}s",
-                    room.room_id, err, delay
+                    room.room_id(), err, delay
                 );
 
                 thread::sleep(time::Duration::from_secs(delay));
                 delay *= 2;
 
                 if delay > 3600 {
-                    eprintln!("Can't join room {} ({:?})", room.room_id, err);
+                    eprintln!("Can't join room {} ({:?})", room.room_id(), err);
                     break;
                 }
             }
-            println!("Successfully joined room {}", room.room_id);
+            println!("Successfully joined room {}", room.room_id());
         }
     }
 
-    async fn on_room_message(&self, room: SyncRoom, event: &SyncMessageEvent<MessageEventContent>) {
+    async fn on_room_message(&self, room: Room, event: &SyncMessageEvent<MessageEventContent>) {
         for handler in self.handlers.iter() {
             let val = handler.handle_message(&self, &room, event).await;
             match val {
