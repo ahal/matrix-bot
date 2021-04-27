@@ -1,5 +1,3 @@
-use std::{thread, time};
-
 pub mod handler;
 use crate::handler::{HandleResult, MessageHandler};
 
@@ -12,6 +10,7 @@ use matrix_sdk::{
     room::Room,
     Client, ClientConfig, EventHandler, SyncSettings,
 };
+use tokio::time::{sleep, Duration};
 use url::Url;
 
 pub struct MatrixBot {
@@ -102,7 +101,7 @@ impl EventHandler for MatrixBot {
                     room.room_id(), err, delay
                 );
 
-                thread::sleep(time::Duration::from_secs(delay));
+                sleep(Duration::from_secs(delay)).await;
                 delay *= 2;
 
                 if delay > 3600 {
