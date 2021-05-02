@@ -1,3 +1,5 @@
+use std::fs;
+
 pub mod handler;
 use crate::handler::{HandleResult, MessageHandler};
 
@@ -10,8 +12,23 @@ use matrix_sdk::{
     room::Room,
     Client, ClientConfig, EventHandler, SyncSettings,
 };
+use serde::Deserialize;
 use tokio::time::{sleep, Duration};
 use url::Url;
+
+#[derive(Deserialize)]
+struct MatrixBotConfig<'a> {
+    homeserver: &'a str,
+    username: &'a str,
+    password: &'a str,
+}
+
+impl<'a> MatrixBotConfig<'a> {
+    fn from_config(content: &'a str) -> MatrixBotConfig<'a> {
+        let config : MatrixBotConfig = toml::from_str(content).unwrap();
+        config
+    }
+}
 
 pub struct MatrixBot {
     /// This clone of the `Client` will send requests to the server,
@@ -21,12 +38,10 @@ pub struct MatrixBot {
 }
 
 impl MatrixBot {
-    pub async fn new(
-        homeserver: &str,
-        username: &str,
-        password: &str,
-    ) -> Result<Self, matrix_sdk::Error> {
+    pub async fn new(config_path: &str) -> Result<Self, matrix_sdk::Error> {
         tracing_subscriber::fmt::init();
+        let config_contents = fs::read_to_string(config_path).expect("Error reading config file!");
+        let config = MatrixBotConfig::from_config(&config_contents);
 
         // the location for `JsonStore` to save files to
         let mut home = dirs::home_dir().expect("no home directory found");
@@ -34,16 +49,16 @@ impl MatrixBot {
 
         let client_config = ClientConfig::new().store_path(home);
 
-        let homeserver = Url::parse(&homeserver).expect("Couldn't parse the homeserver URL");
+        let homeserver = Url::parse(&config.homeserver).expect("Couldn't parse the homeserver URL");
         // create a new Client with the given homeserver url and config
         let client = Client::new_with_config(homeserver, client_config).unwrap();
 
         client
-            .login(username, password, None, Some("testbot"))
+            .login(&config.username, &config.password, None, Some("testbot"))
             .await
             .unwrap();
 
-        println!("logged in as {}", username);
+        println!("logged in as {}", &config.username);
 
         Ok(Self {
             client,
@@ -127,8 +142,12 @@ impl EventHandler for MatrixBot {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use std::fs::File;
+    use std::io::Write;
     use matrix_sdk_test::test_json;
     use mockito::mock;
+    use tempfile::tempdir;
 
     #[tokio::test]
     async fn login() {
@@ -138,7 +157,18 @@ mod tests {
             .with_body(test_json::LOGIN.to_string())
             .create();
 
-        let bot = MatrixBot::new(&homeserver, "user", "password")
+        let config = &format!(r#"
+            homeserver = "{}"
+            username = "user"
+            password = "password"
+        "#, homeserver);
+
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.toml");
+        let mut file = File::create(&path).unwrap();
+        writeln!(file, "{}", config).unwrap();
+
+        let bot = MatrixBot::new(&path.to_str().unwrap())
             .await
             .unwrap();
         let logged_in = bot.client.logged_in().await;
