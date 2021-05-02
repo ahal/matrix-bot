@@ -1,3 +1,5 @@
+use std::fs;
+
 pub mod handler;
 use crate::handler::{HandleResult, MessageHandler};
 
@@ -10,8 +12,23 @@ use matrix_sdk::{
     room::Room,
     Client, ClientConfig, EventHandler, SyncSettings,
 };
+use serde::Deserialize;
 use tokio::time::{sleep, Duration};
 use url::Url;
+
+#[derive(Deserialize)]
+struct MatrixBotConfig<'a> {
+    homeserver: &'a str,
+    username: &'a str,
+    password: &'a str,
+}
+
+impl<'a> MatrixBotConfig<'a> {
+    pub async fn from_file(path: &str) -> MatrixBotConfig<'a> {
+        let content = fs::read_to_string(path).expect("Error reading config file");
+        toml::from_str(String::from(content)).unwrap()
+    }
+}
 
 pub struct MatrixBot {
     /// This clone of the `Client` will send requests to the server,
@@ -21,11 +38,7 @@ pub struct MatrixBot {
 }
 
 impl MatrixBot {
-    pub async fn new(
-        homeserver: &str,
-        username: &str,
-        password: &str,
-    ) -> Result<Self, matrix_sdk::Error> {
+    pub async fn new(config: MatrixBotConfig<'_>) -> Result<Self, matrix_sdk::Error> {
         tracing_subscriber::fmt::init();
 
         // the location for `JsonStore` to save files to
@@ -34,16 +47,16 @@ impl MatrixBot {
 
         let client_config = ClientConfig::new().store_path(home);
 
-        let homeserver = Url::parse(&homeserver).expect("Couldn't parse the homeserver URL");
+        let homeserver = Url::parse(&config.homeserver).expect("Couldn't parse the homeserver URL");
         // create a new Client with the given homeserver url and config
-        let client = Client::new_with_config(homeserver, client_config).unwrap();
+        let client = Client::new_with_config(config.homeserver, client_config).unwrap();
 
         client
-            .login(username, password, None, Some("testbot"))
+            .login(&config.username, &config.password, None, Some("testbot"))
             .await
             .unwrap();
 
-        println!("logged in as {}", username);
+        println!("logged in as {}", &config.username);
 
         Ok(Self {
             client,
@@ -138,7 +151,12 @@ mod tests {
             .with_body(test_json::LOGIN.to_string())
             .create();
 
-        let bot = MatrixBot::new(&homeserver, "user", "password")
+        let config = MatrixBotConfig {
+            homeserver: &homeserver,
+            username: "user",
+            password: "password",
+        };
+        let bot = MatrixBot::new(config)
             .await
             .unwrap();
         let logged_in = bot.client.logged_in().await;
