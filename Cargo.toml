@@ -11,7 +11,7 @@ path = "src/bot.rs"
 
 [dependencies]
 dirs = "^3.0.1"
-matrix-sdk = {"git" = "https://github.com/matrix-org/matrix-rust-sdk", "rev" = "ab180362c931606385dd53b73620d82ef2c3166d"}
+matrix-sdk = {"git" = "https://github.com/matrix-org/matrix-rust-sdk", "rev" = "ab180362c931606385dd53b73620d82ef2c3166d", features = ["encryption", "sled_cryptostore"]}
 serde = {"version" = "^1.0.0", features = ["derive"]}
 tokio = {"version" = "^1.5.0", features = ["time"], "default-features" = false}
 toml = "^0.5.0"
@@ -19,7 +19,7 @@ tracing-subscriber = "^0.2.17"
 url = "^2.2.1"
 
 [dev-dependencies]
-matrix-sdk-test = {"git" = "https://github.com/matrix-org/matrix-rust-sdk", "rev" = "ab180362c931606385dd53b73620d82ef2c3166d"}
+matrix-sdk-test = {"git" = "https://github.com/matrix-org/matrix-rust-sdk", "rev" = "ab180362c931606385dd53b73620d82ef2c3166d", features = ["encryption", "sled_cryptostore"]}
 mockito = "^0.30.0"
 tempfile = "^3.2.0"
 tokio = {"version" = "^1.5.0", features = ["rt-multi-thread", "macros", "time"]}
