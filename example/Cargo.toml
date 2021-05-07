@@ -5,10 +5,8 @@ authors = ["Andrew Halberstadt <ahal@pm.me>"]
 edition = "2018"
 
 [dependencies]
+directories = "^3.0.2"
 matrix-bot = { path = ".." }
-matrix-sdk = "*"
+matrix-sdk = {"git" = "https://github.com/matrix-org/matrix-rust-sdk", "rev" = "ab180362c931606385dd53b73620d82ef2c3166d"}
 tokio = {"version" = "^1.5.0", features = ["rt-multi-thread", "macros"]}
 uuid = {"version" = "^0.8.2", features = ["v4"]}
-
-[patch.crates-io]
-matrix-sdk = {"path" = "../../matrix-rust-sdk/matrix_sdk"}

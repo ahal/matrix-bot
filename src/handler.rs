@@ -3,9 +3,7 @@ use crate::MatrixBot;
 use matrix_sdk::{
     self, async_trait,
     events::{
-        room::{
-            message::MessageEventContent,
-        },
+        room::message::MessageEventContent,
         SyncMessageEvent,
     },
     room::Room,

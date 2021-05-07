@@ -129,6 +129,7 @@ impl EventHandler for MatrixBot {
     }
 
     async fn on_room_message(&self, room: Room, event: &SyncMessageEvent<MessageEventContent>) {
+        println!("FOOBAR");
         for handler in self.handlers.iter() {
             let val = handler.handle_message(&self, &room, event).await;
             match val {
