@@ -10,6 +10,7 @@ license = "MPL-2.0"
 path = "src/bot.rs"
 
 [dependencies]
+directories = "^3.0.2"
 dirs = "^3.0.1"
 matrix-sdk = {"git" = "https://github.com/matrix-org/matrix-rust-sdk", "rev" = "ab180362c931606385dd53b73620d82ef2c3166d", features = ["encryption", "sled_cryptostore"]}
 serde = {"version" = "^1.0.0", features = ["derive"]}

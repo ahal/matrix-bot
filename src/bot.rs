@@ -1,4 +1,5 @@
 use std::fs;
+use std::path::PathBuf;
 
 pub mod handler;
 use crate::handler::{HandleResult, MessageHandler};
@@ -17,10 +18,12 @@ use tokio::time::{sleep, Duration};
 use url::Url;
 
 #[derive(Deserialize)]
+#[derive(Default)]
 struct MatrixBotConfig<'a> {
     homeserver: &'a str,
     username: &'a str,
     password: &'a str,
+    statedir: Option<&'a str>,
 }
 
 impl<'a> MatrixBotConfig<'a> {
@@ -43,11 +46,22 @@ impl MatrixBot {
         let config_contents = fs::read_to_string(config_path).expect("Error reading config file!");
         let config = MatrixBotConfig::from_config(&config_contents);
 
-        // the location for `JsonStore` to save files to
-        let mut home = dirs::home_dir().expect("no home directory found");
-        home.push("testbot");
+        let statedir = match config.statedir {
+            Some(a)=> PathBuf::from(a),
+            None => {
+                match directories::ProjectDirs::from("ca", "ahal", "matrix-bot") {
+                    Some(dirs) => dirs.data_dir().to_path_buf(),
+                    None => {
+                        // the location for `JsonStore` to save files to
+                        let mut home = dirs::home_dir().expect("no home directory found");
+                        home.push(".matrix-bot-state");
+                        home
+                    }
+                }
+            }
+        };
 
-        let client_config = ClientConfig::new().store_path(home);
+        let client_config = ClientConfig::new().store_path(statedir);
 
         let homeserver = Url::parse(&config.homeserver).expect("Couldn't parse the homeserver URL");
         // create a new Client with the given homeserver url and config
