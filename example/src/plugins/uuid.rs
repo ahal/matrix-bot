@@ -12,9 +12,7 @@ use matrix_sdk::{
 };
 use uuid::Uuid;
 
-pub struct UuidHandler {
-
-}
+pub struct UuidHandler {}
 
 impl UuidHandler {
     fn generate_uuid(&self) -> std::string::String {

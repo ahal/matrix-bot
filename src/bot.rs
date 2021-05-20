@@ -1,3 +1,61 @@
+//! This crate implements a framework for [Matrix](https://matrix.org/) bots. It provides
+//! encrpytion support (via [matrix-rust-sdk](https://docs.rs/matrix-sdk/latest/matrix_sdk/)),
+//! autojoin on invite, and more. Actual functionality is up to consumers to provide via a plugin
+//! system.
+//!
+//! Example `main.rs`:
+//! ```rust
+//! use matrix_bot::MatrixBot;
+//! use std::env;
+//! 
+//! pub mod plugins {
+//!     pub mod uuid;
+//! }
+//! use crate::plugins::uuid::UuidHandler;
+//! 
+//! #[tokio::main]
+//! async fn main() {
+//!     let config_path = match env::args().nth(1) {
+//!         Some(a)=> a,
+//!         None => {
+//!             match directories::ProjectDirs::from("ca", "ahal", "testbot") {
+//!                 Some(dirs) => {
+//!                     let path = dirs.config_dir().join("config.toml");
+//!                     String::from(path.to_str().unwrap())
+//!                 },
+//!                 None => String::from("config.toml")
+//!             }
+//!         }
+//!     };
+//! 
+//!     let mut bot = MatrixBot::new(&config_path)
+//!         .await
+//!         .unwrap();
+//!     bot.add_handler(UuidHandler {});
+//!     bot.run().await.unwrap();
+//! }
+//! ```
+//!
+//! # Configuration
+//!
+//! The `MatrixBot` struct expects a path to a [toml](https://github.com/toml-lang/toml)
+//! configuration file. This file can contain the following values:
+//!
+//! ```toml
+//! # url to homeserver of user (required)
+//! homeserver = https://example.org
+//!
+//! # bot's username (required)
+//! username = robocop
+//!
+//! # bot's password (required)
+//! password = hunter2
+//!
+//! # path to directory to store state (optional, default's to a platform dependent [data
+//! dir](https://docs.rs/directories/3.0.2/directories/struct.ProjectDirs.html#method.data_dir))
+//! statedir = path/to/state
+//! ```
+
 use std::fs;
 use std::path::PathBuf;
 
@@ -32,6 +90,8 @@ impl<'a> MatrixBotConfig<'a> {
     }
 }
 
+/// Bot responsible for registering handlers and listening for messages in a loop upon a call to
+/// `run`.
 pub struct MatrixBot {
     /// This clone of the `Client` will send requests to the server,
     /// while the other keeps us in sync with the server using `sync`.
@@ -40,6 +100,19 @@ pub struct MatrixBot {
 }
 
 impl MatrixBot {
+    /// Create a new `MatrixBot` instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `config_path` - Path to the configuration file.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let mut bot = MatrixBot::new("path/to/config.toml")
+    ///     .await
+    ///     .unwrap();
+    /// ```
     pub async fn new(config_path: &str) -> Result<Self, matrix_sdk::Error> {
         let config_contents = fs::read_to_string(config_path).expect("Error reading config file!");
         let config = MatrixBotConfig::from_config(&config_contents);
@@ -78,6 +151,13 @@ impl MatrixBot {
         })
     }
 
+    /// Listen for messages in a loop and forward them to any registered handlers.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// bot.run().await.unwrap();
+    /// ```
     pub async fn run(self) -> Result<(), matrix_sdk::Error> {
         let client = self.client.clone();
 
@@ -95,6 +175,17 @@ impl MatrixBot {
         Ok(())
     }
 
+    /// Register a new handler.
+    ///
+    /// # Arguments
+    ///
+    /// * `handler` - An instance implementing the `MessageHandler` trait.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// bot.add_handler(EchoHandler {})
+    /// ```
     pub fn add_handler<M>(&mut self, handler: M)
     where
         M: handler::MessageHandler + 'static + Send + Sync,
