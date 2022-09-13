@@ -1,20 +1,17 @@
 use matrix_bot::{
-    MatrixBot,
     handler::{HandleResult, MessageHandler},
+    MatrixBot,
 };
 use matrix_sdk::{
     self, async_trait,
-    events::{
-        room::message::{MessageEventContent, MessageType, TextMessageEventContent},
-        AnyMessageEventContent, SyncMessageEvent,
-    },
     room::Room,
+    ruma::events::room::message::{
+        MessageType, OriginalSyncRoomMessageEvent, RoomMessageEventContent, TextMessageEventContent,
+    },
 };
 use uuid::Uuid;
 
-pub struct UuidHandler {
-
-}
+pub struct UuidHandler {}
 
 impl UuidHandler {
     fn generate_uuid(&self) -> std::string::String {
@@ -24,32 +21,26 @@ impl UuidHandler {
 
 #[async_trait]
 impl MessageHandler for UuidHandler {
-    async fn handle_message(&self, _bot: &MatrixBot, room: &Room, event: &SyncMessageEvent<MessageEventContent>) -> HandleResult {
+    async fn handle_message(
+        &self,
+        room: &Room,
+        event: &OriginalSyncRoomMessageEvent,
+    ) -> HandleResult {
         if let Room::Joined(room) = room {
-            let msg_body = if let SyncMessageEvent {
-                content: MessageEventContent {
-                    msgtype: MessageType::Text(TextMessageEventContent { body: msg_body, .. }),
-                    ..
-                },
-                ..
-            } = event
-            {
-                msg_body.clone()
-            } else {
-                String::new()
+            let msg_body = match &event.content.msgtype {
+                MessageType::Text(TextMessageEventContent { body, .. }) => body,
+                _ => return HandleResult::Stop,
             };
 
             if msg_body == "!uuid" {
-                let content = AnyMessageEventContent::RoomMessage(MessageEventContent::text_plain(
-                    self.generate_uuid()
-                ));
+                let content = RoomMessageEventContent::text_plain(self.generate_uuid());
 
                 println!("sending");
 
                 room.send(content, None).await.unwrap();
 
                 println!("message sent");
-                return HandleResult::Stop
+                return HandleResult::Stop;
             }
         }
         HandleResult::Continue
