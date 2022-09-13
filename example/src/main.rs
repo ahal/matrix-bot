@@ -1,5 +1,4 @@
 use anyhow::Result;
-use core::convert::TryFrom;
 use matrix_bot::{config::MatrixBotConfig, MatrixBot};
 use matrix_sdk::ruma::events::room::message::OriginalSyncRoomMessageEvent;
 use matrix_sdk::{
@@ -8,7 +7,6 @@ use matrix_sdk::{
     Client,
 };
 use std::env;
-use std::fs;
 use std::path::PathBuf;
 
 pub mod plugins {
@@ -18,20 +16,7 @@ use crate::plugins::uuid::UuidHandler;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let config_path = match env::args().nth(1) {
-        Some(a) => a,
-        None => match directories::ProjectDirs::from("ca", "ahal", "testbot") {
-            Some(dirs) => {
-                let path = dirs.config_dir().join("config.toml");
-                String::from(path.to_str().unwrap())
-            }
-            None => String::from("config.toml"),
-        },
-    };
-    dbg!(&config_path);
-
-    let config_path = fs::read_to_string(config_path).expect("Error reading config file!");
-    let config = MatrixBotConfig::try_from(config_path.as_ref()).unwrap();
+    let config = MatrixBotConfig::new(env::args().nth(1));
 
     let _statedir = match config.statedir {
         Some(a) => PathBuf::from(a),
