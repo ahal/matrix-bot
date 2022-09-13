@@ -1,7 +1,4 @@
-use matrix_bot::{
-    handler::{HandleResult, MessageHandler},
-    MatrixBot,
-};
+use matrix_bot::handler::{HandleResult, MessageHandler};
 use matrix_sdk::{
     self, async_trait,
     room::Room,

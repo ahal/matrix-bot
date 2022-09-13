@@ -1,5 +1,6 @@
 use crate::handler::{HandleResult, MessageHandler};
 use matrix_sdk::{room::Room, ruma::events::room::message::OriginalSyncRoomMessageEvent};
+
 pub mod config;
 pub mod handler;
 

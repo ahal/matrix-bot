@@ -1,4 +1,5 @@
 use anyhow::Result;
+use core::convert::TryFrom;
 use matrix_bot::{config::MatrixBotConfig, MatrixBot};
 use matrix_sdk::ruma::events::room::message::OriginalSyncRoomMessageEvent;
 use matrix_sdk::{
@@ -9,7 +10,6 @@ use matrix_sdk::{
 use std::env;
 use std::fs;
 use std::path::PathBuf;
-use url::Url;
 
 pub mod plugins {
     pub mod uuid;
@@ -31,7 +31,7 @@ async fn main() -> Result<()> {
     dbg!(&config_path);
 
     let config_path = fs::read_to_string(config_path).expect("Error reading config file!");
-    let config = MatrixBotConfig::from_config(&config_path);
+    let config = MatrixBotConfig::try_from(config_path.as_ref()).unwrap();
 
     let _statedir = match config.statedir {
         Some(a) => PathBuf::from(a),
@@ -48,8 +48,7 @@ async fn main() -> Result<()> {
         }
     };
 
-    let homeserver = Url::parse(&config.homeserver).expect("Couldn't parse the homeserver URL");
-    let client_builder = Client::builder().homeserver_url(homeserver);
+    let client_builder = Client::builder().homeserver_url(&config.homeserver);
 
     let client = client_builder.build().await.unwrap();
 
