@@ -1,8 +1,9 @@
 use matrix_sdk::{
     async_trait,
-    room::Room,
-    ruma::events::room::message::OriginalSyncRoomMessageEvent
+    room::Joined,
 };
+
+use crate::MatrixBot;
 
 pub enum HandleResult {
     Continue,
@@ -13,7 +14,8 @@ pub enum HandleResult {
 pub trait MessageHandler {
     async fn handle_message(
         &self,
-        room: &Room,
-        event: &OriginalSyncRoomMessageEvent,
+        bot: &MatrixBot,
+        room: &Joined,
+        msg: &str,
     ) -> HandleResult;
 }

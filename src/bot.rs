@@ -1,5 +1,15 @@
 use crate::handler::{HandleResult, MessageHandler};
-use matrix_sdk::{room::Room, ruma::events::room::message::OriginalSyncRoomMessageEvent};
+use matrix_sdk::{
+    room::{Joined, Room},
+    ruma::{
+        api::client::message::send_message_event,
+        events::room::message::{
+            MessageType, OriginalSyncRoomMessageEvent, RoomMessageEventContent,
+            TextMessageEventContent,
+        },
+    },
+    Result as MatrixResult,
+};
 
 pub mod config;
 pub mod handler;
@@ -16,17 +26,33 @@ impl<'a> MatrixBot<'a> {
 
     pub fn add_handler<M>(&mut self, handler: &'a M)
     where
-        M: handler::MessageHandler + Send + Sync + 'static,
+        M: MessageHandler + Send + Sync,
     {
         self.handlers.push(handler);
     }
 
+    pub async fn send(
+        &self,
+        room: &Joined,
+        msg: String,
+    ) -> MatrixResult<send_message_event::v3::Response> {
+        let content = RoomMessageEventContent::text_plain(msg);
+        room.send(content, None).await
+    }
+
     pub async fn on_room_message(&self, room: &Room, event: &OriginalSyncRoomMessageEvent) {
-        for handler in self.handlers.iter() {
-            let val = handler.handle_message(room, event).await;
-            match val {
-                HandleResult::Continue => continue,
-                HandleResult::Stop => break,
+        if let Room::Joined(room) = room {
+            let msg = match &event.content.msgtype {
+                MessageType::Text(TextMessageEventContent { body, .. }) => body,
+                _ => return,
+            };
+
+            for handler in self.handlers.iter() {
+                let val = handler.handle_message(&self, room, msg).await;
+                match val {
+                    HandleResult::Continue => continue,
+                    HandleResult::Stop => break,
+                }
             }
         }
     }

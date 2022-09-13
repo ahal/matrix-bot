@@ -1,10 +1,7 @@
-use matrix_bot::handler::{HandleResult, MessageHandler};
+use matrix_bot::{handler::{HandleResult, MessageHandler}, MatrixBot};
 use matrix_sdk::{
     self, async_trait,
-    room::Room,
-    ruma::events::room::message::{
-        MessageType, OriginalSyncRoomMessageEvent, RoomMessageEventContent, TextMessageEventContent,
-    },
+    room::Joined,
 };
 use uuid::Uuid;
 
@@ -20,25 +17,15 @@ impl UuidHandler {
 impl MessageHandler for UuidHandler {
     async fn handle_message(
         &self,
-        room: &Room,
-        event: &OriginalSyncRoomMessageEvent,
+        bot: &MatrixBot,
+        room: &Joined,
+        msg: &str,
     ) -> HandleResult {
-        if let Room::Joined(room) = room {
-            let msg_body = match &event.content.msgtype {
-                MessageType::Text(TextMessageEventContent { body, .. }) => body,
-                _ => return HandleResult::Stop,
-            };
-
-            if msg_body == "!uuid" {
-                let content = RoomMessageEventContent::text_plain(self.generate_uuid());
-
-                println!("sending");
-
-                room.send(content, None).await.unwrap();
-
-                println!("message sent");
-                return HandleResult::Stop;
-            }
+        if msg == "!uuid" {
+            println!("sending");
+            bot.send(room, self.generate_uuid()).await.unwrap();
+            println!("message sent");
+            return HandleResult::Stop;
         }
         HandleResult::Continue
     }
